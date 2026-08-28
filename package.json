@@ -1,5 +1,5 @@
 {
-  "name": "opencode-claude-compat",
+  "name": "@jonathanmorley/opencode-claude-compat",
   "version": "0.1.0",
   "type": "module",
   "description": "Minimal OpenCode plugin that bridges Claude Code plugins/marketplaces (skills, commands, agents, hooks, MCPs) \u2014 extracted from oh-my-openagent's claude-code-compat-core.",

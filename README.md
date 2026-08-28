@@ -5,14 +5,14 @@ Minimal OpenCode plugin that bridges Claude Code plugins/marketplaces (skills, c
 ## Install
 
 ```bash
-opencode plugin add opencode-claude-compat
+opencode plugin add @jonathanmorley/opencode-claude-compat
 ```
 
 Or add it to your OpenCode config directly:
 
 ```json
 {
-  "plugin": ["opencode-claude-compat"]
+  "plugin": ["@jonathanmorley/opencode-claude-compat"]
 }
 ```
 
