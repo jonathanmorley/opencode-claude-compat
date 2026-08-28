@@ -1,0 +1,45 @@
+{
+  "name": "opencode-claude-compat",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Minimal OpenCode plugin that bridges Claude Code plugins/marketplaces (skills, commands, agents, hooks, MCPs) \u2014 extracted from oh-my-openagent's claude-code-compat-core.",
+  "license": "SUL-1.0",
+  "main": "./dist/plugin.js",
+  "exports": {
+    ".": "./dist/plugin.js",
+    "./plugin": "./dist/plugin.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "LICENSE.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonathanmorley/opencode-claude-compat.git"
+  },
+  "scripts": {
+    "build": "bun build ./src/plugin.ts --outdir ./dist --target bun --minify",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "lint": "echo lint placeholder",
+    "format": "echo format placeholder"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "*"
+  },
+  "dependencies": {
+    "js-yaml": "^5.0.0",
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.8",
+    "@types/bun": "^1.4.0",
+    "@types/node": "^26.4.0",
+    "typescript": "^5.0.0"
+  }
+}
