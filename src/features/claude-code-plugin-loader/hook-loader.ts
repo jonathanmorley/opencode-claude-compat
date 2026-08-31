@@ -28,19 +28,34 @@ export function loadPluginHooksConfigs(plugins: LoadedPlugin[]): HooksConfig[] {
   const configs: HooksConfig[] = []
 
   for (const plugin of plugins) {
-    if (!plugin.hooksPath || !existsSync(plugin.hooksPath)) continue
+    const hooksPath = plugin.hooksPath
+    const inlineHooks = plugin.manifest?.hooks
 
-    try {
-      const content = readFileSync(plugin.hooksPath, "utf-8")
-      let config = JSON.parse(content) as HooksConfig
+    if (hooksPath && existsSync(hooksPath)) {
+      try {
+        const config = resolvePluginPaths(
+          JSON.parse(readFileSync(hooksPath, "utf-8")) as HooksConfig,
+          plugin.installPath,
+        )
+        stampPluginRoot(config, plugin.installPath)
 
-      config = resolvePluginPaths(config, plugin.installPath)
-      stampPluginRoot(config, plugin.installPath)
+        configs.push(config)
+        log(`Loaded plugin hooks config from ${plugin.name}`, { path: hooksPath })
+      } catch (error) {
+        log(`Failed to load plugin hooks config: ${hooksPath}`, error)
+      }
+    }
 
-      configs.push(config)
-      log(`Loaded plugin hooks config from ${plugin.name}`, { path: plugin.hooksPath })
-    } catch (error) {
-      log(`Failed to load plugin hooks config: ${plugin.hooksPath}`, error)
+    if (inlineHooks && typeof inlineHooks !== "string") {
+      try {
+        const config = resolvePluginPaths({ hooks: inlineHooks }, plugin.installPath)
+        stampPluginRoot(config, plugin.installPath)
+
+        configs.push(config)
+        log(`Loaded plugin hooks config from ${plugin.name}`, { path: "manifest" })
+      } catch (error) {
+        log("Failed to load plugin hooks config: manifest", error)
+      }
     }
   }
 

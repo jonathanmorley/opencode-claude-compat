@@ -105,7 +105,7 @@ export interface PluginManifest {
   commands?: string | string[]
   agents?: string | string[]
   skills?: string | string[]
-  hooks?: string | HooksConfig
+  hooks?: string | HookEventMap
   mcpServers?: string | McpServersConfig
   lspServers?: string | LspServersConfig
   outputStyles?: string | string[]
@@ -125,21 +125,23 @@ export interface HookMatcher {
   hooks: HookEntry[]
 }
 
+export interface HookEventMap {
+  PreToolUse?: HookMatcher[]
+  PostToolUse?: HookMatcher[]
+  PostToolUseFailure?: HookMatcher[]
+  PermissionRequest?: HookMatcher[]
+  UserPromptSubmit?: HookMatcher[]
+  Notification?: HookMatcher[]
+  Stop?: HookMatcher[]
+  SubagentStart?: HookMatcher[]
+  SubagentStop?: HookMatcher[]
+  SessionStart?: HookMatcher[]
+  SessionEnd?: HookMatcher[]
+  PreCompact?: HookMatcher[]
+}
+
 export interface HooksConfig {
-  hooks?: {
-    PreToolUse?: HookMatcher[]
-    PostToolUse?: HookMatcher[]
-    PostToolUseFailure?: HookMatcher[]
-    PermissionRequest?: HookMatcher[]
-    UserPromptSubmit?: HookMatcher[]
-    Notification?: HookMatcher[]
-    Stop?: HookMatcher[]
-    SubagentStart?: HookMatcher[]
-    SubagentStop?: HookMatcher[]
-    SessionStart?: HookMatcher[]
-    SessionEnd?: HookMatcher[]
-    PreCompact?: HookMatcher[]
-  }
+  hooks?: HookEventMap
 }
 
 /**
