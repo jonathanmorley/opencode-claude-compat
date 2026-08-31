@@ -35,6 +35,17 @@ Discovery reads `~/.claude/plugins/installed_plugins.json` plus the plugin cache
 
 This is a stopgap. Retire it once OpenCode's native unified marketplace (issue [#28696](https://github.com/sst/opencode/issues/28696) / PR [#40108](https://github.com/sst/opencode/pull/40108)) ships with a Claude catalog adapter.
 
+## Development
+
+```bash
+bun install
+bun test          # 226 tests
+bun run build
+npx tsc --noEmit
+```
+
+CI runs `bun test` + `build` + `typecheck` on every push/PR (`.github/workflows/ci.yml`); publish runs on version tags.
+
 ## Attribution
 
 Extracted from [code-yeongyu/oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent) — see `LICENSE.upstream.md` (Sustainable Use License 1.0).
