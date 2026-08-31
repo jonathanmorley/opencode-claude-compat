@@ -74,7 +74,7 @@ If no release-worthy commit has landed since the last tag, `semantic-release` sk
 Octo STS federates the Actions OIDC token into a **GitHub App** installation token. This requires:
 
 - A GitHub App installed on the repository with `contents: write`, `issues: write`, and `pull_requests: write` permissions, registered with the Octo STS service (`octo-sts.dev` by default).
-- The trust policy at `.github/chainguard/release.sts.yaml` in this repo, granting those permissions to the `release` identity for pushes on `main`.
+- The trust policy at `.github/chainguard/release.sts.yaml` in this repo, granting those permissions to the `release` identity for pushes on `main`. The `subject` must match the Actions OIDC `sub` claim exactly — GitHub includes the owner and repository IDs in the subject (e.g. `repo:OWNER@<ownerId>/REPO@<repoId>:ref:refs/heads/main`). The current value is derivable from any run's "OIDC Token Claims" log group if it ever needs updating.
 
 ### Notes / caveats
 
