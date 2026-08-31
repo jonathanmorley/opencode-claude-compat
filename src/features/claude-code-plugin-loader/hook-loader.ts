@@ -28,19 +28,32 @@ export function loadPluginHooksConfigs(plugins: LoadedPlugin[]): HooksConfig[] {
   const configs: HooksConfig[] = []
 
   for (const plugin of plugins) {
-    if (!plugin.hooksPath || !existsSync(plugin.hooksPath)) continue
+    const hooksPath =
+      plugin.hooksPath && existsSync(plugin.hooksPath) ? plugin.hooksPath : undefined
+    const inlineHooks =
+      plugin.manifest?.hooks && typeof plugin.manifest.hooks !== "string"
+        ? { hooks: plugin.manifest.hooks }
+        : undefined
+    if (!hooksPath && !inlineHooks) continue
+    const source = hooksPath ?? "manifest"
 
     try {
-      const content = readFileSync(plugin.hooksPath, "utf-8")
-      let config = JSON.parse(content) as HooksConfig
+      let config: HooksConfig
+      if (hooksPath) {
+        config = JSON.parse(readFileSync(hooksPath, "utf-8")) as HooksConfig
+      } else if (inlineHooks) {
+        config = inlineHooks
+      } else {
+        continue
+      }
 
       config = resolvePluginPaths(config, plugin.installPath)
       stampPluginRoot(config, plugin.installPath)
 
       configs.push(config)
-      log(`Loaded plugin hooks config from ${plugin.name}`, { path: plugin.hooksPath })
+      log(`Loaded plugin hooks config from ${plugin.name}`, { path: source })
     } catch (error) {
-      log(`Failed to load plugin hooks config: ${plugin.hooksPath}`, error)
+      log(`Failed to load plugin hooks config: ${source}`, error)
     }
   }
 

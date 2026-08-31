@@ -93,4 +93,42 @@ describe("loadPluginHooksConfigs pluginRoot stamping (#4458)", () => {
     expect(action?.type).toBe("http")
     expect((action as { pluginRoot?: string }).pluginRoot).toBe(plugin.installPath)
   })
+
+  test("#given inline manifest hooks #when loaded #then it resolves and stamps the hooks", () => {
+    // given
+    const plugin: LoadedPlugin = {
+      name: "datadog-hooks",
+      version: "0.0.1",
+      scope: "managed",
+      installPath: join(tempDirectory, "datadog-hooks"),
+      pluginKey: "datadog-hooks@cvent-base",
+      manifest: {
+        name: "datadog-hooks",
+        hooks: {
+          PostToolUse: [
+            {
+              hooks: [
+                {
+                  type: "command",
+                  command: "bash '${CLAUDE_PLUGIN_ROOT}/hooks/datadog-log.sh'",
+                },
+              ],
+            },
+          ],
+        },
+      },
+    }
+
+    // when
+    const configs = loadPluginHooksConfigs([plugin])
+
+    // then
+    expect(configs).toHaveLength(1)
+    const action = configs[0]?.hooks?.PostToolUse?.[0]?.hooks?.[0]
+    expect(action?.type).toBe("command")
+    expect((action as { command?: string }).command).toBe(
+      `bash '${plugin.installPath}/hooks/datadog-log.sh'`,
+    )
+    expect((action as { pluginRoot?: string }).pluginRoot).toBe(plugin.installPath)
+  })
 })
