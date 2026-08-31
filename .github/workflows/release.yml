@@ -5,8 +5,11 @@ on:
     branches: [main]
 
 permissions:
-  # Required for Octo STS to federate the Actions OIDC token into a GitHub App
-  # installation token that semantic-release uses to commit/tag/release.
+  # id-token is used for two federated, short-lived credentials:
+  #   1. Octo STS -> GitHub App installation token that semantic-release uses
+  #      to commit/tag/create the GitHub Release.
+  #   2. npm trusted publishing (OIDC) so @semantic-release/npm can publish
+  #      with provenance, without any long-lived NPM_TOKEN.
   id-token: write
   contents: read
 
@@ -46,4 +49,8 @@ jobs:
           GIT_AUTHOR_EMAIL: github-actions@users.noreply.github.com
           GIT_COMMITTER_NAME: opencode-claude-compat release bot
           GIT_COMMITTER_EMAIL: github-actions@users.noreply.github.com
+          # Publish with SLSA provenance using npm trusted publishing (OIDC).
+          # Without this, publishing would rely on the "skip ci" tag push
+          # flow that silently never runs.
+          NPM_CONFIG_PROVENANCE: "true"
         run: npx --no-install semantic-release
