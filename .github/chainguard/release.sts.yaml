@@ -1,0 +1,16 @@
+# Trust policy for the `release` Octo STS identity.
+
+# Federate the GitHub Actions OIDC token for the GitHub App token used by
+# semantic-release. Scoped to pushes on `main` (the branch that runs release.yml).
+issuer: https://token.actions.githubusercontent.com
+subject: repo:jonathanmorley/opencode-claude-compat:ref:refs/heads/main
+
+# Permissions granted to the GitHub App installation token for this repository.
+# - contents: write    -> semantic-release commits the version bump + CHANGELOG
+#                         and creates/pushes the v* tag
+# - issues: write      -> @semantic-release/github comments on linked issues
+# - pull_requests: write -> @semantic-release/github comments on linked PRs
+permissions:
+  contents: write
+  issues: write
+  pull_requests: write
