@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.1.1...v0.1.2) (2026-08-31)
+
+
+### Bug Fixes
+
+* **release:** publish to npm via semantic-release trusted publishing ([1897f7a](https://github.com/jonathanmorley/opencode-claude-compat/commit/1897f7a54a6d698f2ff34359f002161def5381c9))
+
 ## [0.1.1](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.1.0...v0.1.1) (2026-08-31)
 
 
