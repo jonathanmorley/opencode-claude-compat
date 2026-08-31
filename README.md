@@ -49,3 +49,35 @@ CI runs `bun test` + `build` + `typecheck` on every push/PR (`.github/workflows/
 ## Attribution
 
 Extracted from [code-yeongyu/oh-my-openagent](https://github.com/code-yeongyu/oh-my-openagent) — see `LICENSE.upstream.md` (Sustainable Use License 1.0).
+
+## Releasing
+
+Releases are fully automated with [semantic-release](https://semantic-release.gitbook.io). The pipeline:
+
+1. **`release.yml`** runs on every push to `main`. It runs the test suite and a build as a gate, then mints a short-lived, tightly-scoped **GitHub App token** via [Octo STS](https://github.com/octo-sts/action) (trust policy in `.github/chainguard/release.sts.yaml`) and runs `semantic-release`.
+2. `semantic-release` derives the next version from [conventional commits](https://www.conventionalcommits.org) since the last `v*` tag, updates the version in `package.json`, appends release notes to `CHANGELOG.md`, commits both, and pushes a `v<major>.<minor>.<patch>` tag. It also creates a GitHub Release.
+3. Pushing the `v*` tag triggers the existing **`publish.yml`**, which runs tests/build again and publishes the package to npm with provenance (`npm publish --access public --provenance` via OIDC).
+
+There is nothing to do by hand for a normal release — just merge conventional commits to `main`.
+
+### Commit conventions
+
+- `feat(...)` → minor bump (feature)
+- `fix(...)` → patch bump (bugfix)
+- `BREAKING CHANGE:` footer (or `!`) → major bump
+- `chore`, `docs`, `test`, `refactor`, `ci`, `style`, `build`, `perf` → no release
+
+If no release-worthy commit has landed since the last tag, `semantic-release` skips the release and no tag is created.
+
+### One-time setup (already done for this repo)
+
+Octo STS federates the Actions OIDC token into a **GitHub App** installation token. This requires:
+
+- A GitHub App installed on the repository with `contents: write`, `issues: write`, and `pull_requests: write` permissions, registered with the Octo STS service (`octo-sts.dev` by default).
+- The trust policy at `.github/chainguard/release.sts.yaml` in this repo, granting those permissions to the `release` identity for pushes on `main`.
+
+### Notes / caveats
+
+- `semantic-release` v25 requires Node `>= 24.10.0`; the `release` workflow therefore runs it with the Node runtime set up by `actions/setup-node` (the local `bun` runtime reports an older embedded Node and is not used for this step).
+- The npm package version is bumped from `package.json` by `@semantic-release/npm` with `npmPublish: false`; actual publishing happens only in `publish.yml` via OIDC/provenance, so `semantic-release` needs no npm credentials.
+- The GitHub App token must have write access to `main`. If branch protection is later added to `main`, the App must be added to the protected-branch allowlist so `semantic-release` can push release commits and tags.
