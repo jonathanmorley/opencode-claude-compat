@@ -7,7 +7,8 @@
   "main": "./dist/plugin.js",
   "exports": {
     ".": "./dist/plugin.js",
-    "./plugin": "./dist/plugin.js"
+    "./plugin": "./dist/plugin.js",
+    "./v2": "./dist/v2.js"
   },
   "files": [
     "dist",
@@ -24,7 +25,7 @@
     "url": "https://github.com/jonathanmorley/opencode-claude-compat.git"
   },
   "scripts": {
-    "build": "bun build ./src/plugin.ts --outdir ./dist --target bun --minify",
+    "build": "bun build ./src/plugin.ts ./src/v2.ts --outdir ./dist --target bun --minify --external @opencode-ai/plugin",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "lint": "echo lint placeholder",

@@ -16,6 +16,22 @@ Or add it to your OpenCode config directly:
 }
 ```
 
+OpenCode V2 uses the `plugins` configuration key with the package root:
+
+```json
+{
+  "plugins": ["@jonathanmorley/opencode-claude-compat"]
+}
+```
+
+The package root exports the V1 `server` entry and the V2 `setup` entry. The
+`./v2` subpath is also available for direct imports. The V2 entrypoint targets
+the V2 Promise plugin contract and registers embedded Claude skills. Its
+command and agent draft APIs are update-only, so they can modify matching host
+definitions but cannot add new Claude commands or agents. The V2 host does not
+expose MCP or tool-hook domains; those features are available through the V1
+entry.
+
 ## What it bridges
 
 - **Skills** (`skills/**/SKILL.md` from installed plugins) → OpenCode skills
@@ -39,7 +55,7 @@ This is a stopgap. Retire it once OpenCode's native unified marketplace (issue [
 
 ```bash
 bun install
-bun test          # 226 tests
+bun test
 bun run build
 npx tsc --noEmit
 ```

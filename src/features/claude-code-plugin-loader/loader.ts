@@ -5,14 +5,14 @@ import type { ClaudeCodeAgentConfig } from "../claude-code-agent-loader/types"
 import type { HooksConfig, LoadedPlugin, PluginLoadError, PluginLoaderOptions } from "./types"
 import { discoverInstalledPlugins } from "./discovery"
 import { loadPluginCommands } from "./command-loader"
-import { loadPluginSkillsAsCommands } from "./skill-loader"
+import { loadPluginSkills, loadPluginSkillsAsCommands } from "./skill-loader"
 import { loadPluginAgents } from "./agent-loader"
 import { loadPluginMcpServers } from "./mcp-server-loader"
 import { loadPluginHooksConfigs } from "./hook-loader"
 
 export { discoverInstalledPlugins } from "./discovery"
 export { loadPluginCommands } from "./command-loader"
-export { loadPluginSkillsAsCommands } from "./skill-loader"
+export { loadPluginSkills, loadPluginSkillsAsCommands } from "./skill-loader"
 export { loadPluginAgents } from "./agent-loader"
 export { loadPluginMcpServers } from "./mcp-server-loader"
 export { loadPluginHooksConfigs } from "./hook-loader"
@@ -20,6 +20,7 @@ export { loadPluginHooksConfigs } from "./hook-loader"
 export interface PluginComponentsResult {
   commands: Record<string, CommandDefinition>
   skills: Record<string, CommandDefinition>
+  skillDefinitions?: ReturnType<typeof loadPluginSkills>
   agents: Record<string, ClaudeCodeAgentConfig>
   mcpServers: Record<string, McpServerConfig>
   hooksConfigs: HooksConfig[]
@@ -30,6 +31,7 @@ export interface PluginComponentsResult {
 export interface PluginComponentLoadDeps {
   discoverInstalledPlugins: typeof discoverInstalledPlugins
   loadPluginCommands: typeof loadPluginCommands
+  loadPluginSkills?: typeof loadPluginSkills
   loadPluginSkillsAsCommands: typeof loadPluginSkillsAsCommands
   loadPluginAgents: typeof loadPluginAgents
   loadPluginMcpServers: typeof loadPluginMcpServers
@@ -41,6 +43,7 @@ const cachedPluginComponentsByKey = new Map<string, PluginComponentsResult>()
 const defaultPluginComponentLoadDeps: PluginComponentLoadDeps = {
   discoverInstalledPlugins,
   loadPluginCommands,
+  loadPluginSkills,
   loadPluginSkillsAsCommands,
   loadPluginAgents,
   loadPluginMcpServers,
@@ -98,9 +101,17 @@ async function loadAllPluginComponentsInternal(
 
   const { plugins, errors } = deps.discoverInstalledPlugins(options)
 
+  const skillDefinitions = deps.loadPluginSkills
+    ? await deps.loadPluginSkills(plugins)
+    : undefined
+
+  const skillsPromise = deps.loadPluginSkills
+    ? deps.loadPluginSkillsAsCommands(plugins, skillDefinitions)
+    : deps.loadPluginSkillsAsCommands(plugins)
+
   const [commands, skills, agents, mcpServers, hooksConfigs] = await Promise.all([
     Promise.resolve(deps.loadPluginCommands(plugins)),
-    Promise.resolve(deps.loadPluginSkillsAsCommands(plugins)),
+    Promise.resolve(skillsPromise),
     Promise.resolve(deps.loadPluginAgents(plugins, options?.anthropicProvider)),
     deps.loadPluginMcpServers(plugins),
     Promise.resolve(deps.loadPluginHooksConfigs(plugins)),
@@ -111,6 +122,7 @@ async function loadAllPluginComponentsInternal(
   const result = {
     commands,
     skills,
+    ...(skillDefinitions ? { skillDefinitions } : {}),
     agents,
     mcpServers,
     hooksConfigs,

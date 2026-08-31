@@ -8,14 +8,15 @@
  * Upstream license: see LICENSE.upstream.md (SUL — this is a compat-only
  * extraction; Task 4 of the fork plan owns the license migration).
  */
-import type { Plugin, PluginInput } from "@opencode-ai/plugin"
 import { loadAllPluginComponents } from "./features/claude-code-plugin-loader"
 import { setPluginHooksConfigs } from "./features/claude-code-hooks/config"
 import { createToolExecuteBeforeHandler } from "./features/claude-code-hooks/handlers/tool-execute-before-handler"
 import { createToolExecuteAfterHandler } from "./features/claude-code-hooks/handlers/tool-execute-after-handler"
 import type { PluginConfig } from "./features/claude-code-hooks/types"
+import type { V1Plugin, V1PluginInput } from "./v1-types"
+import { v2Plugin } from "./v2"
 
-export default (async (ctx: PluginInput) => {
+export const v1Plugin = (async (ctx: V1PluginInput) => {
   const config: PluginConfig = {}
   console.log("[opencode-claude-compat] plugin loaded")
 
@@ -46,4 +47,12 @@ export default (async (ctx: PluginInput) => {
     "tool.execute.before": createToolExecuteBeforeHandler(ctx, config),
     "tool.execute.after": createToolExecuteAfterHandler(ctx, config),
   }
-}) satisfies Plugin
+}) satisfies V1Plugin
+
+const plugin = {
+  id: v2Plugin.id,
+  server: v1Plugin,
+  setup: v2Plugin.setup,
+}
+
+export default plugin

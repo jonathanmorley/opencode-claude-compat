@@ -15,10 +15,17 @@ interface SkillMetadata {
   model?: unknown
 }
 
-export function loadPluginSkillsAsCommands(
-  plugins: LoadedPlugin[],
-): Record<string, CommandDefinition> {
-  const skills: Record<string, CommandDefinition> = {}
+export interface LoadedPluginSkill {
+  name: string
+  description: string
+  template: string
+  content: string
+  location: string
+  model?: string
+}
+
+export function loadPluginSkills(plugins: LoadedPlugin[]): Record<string, LoadedPluginSkill> {
+  const skills: Record<string, LoadedPluginSkill> = {}
 
   for (const plugin of plugins) {
     if (!plugin.skillsDir || !existsSync(plugin.skillsDir)) continue
@@ -48,15 +55,16 @@ export function loadPluginSkillsAsCommands(
         const pluginResolvedBody = resolvePluginPath(resolvedBody, plugin.installPath)
         const wrappedTemplate = `<skill-instruction>\nBase directory for this skill: ${resolvedPath}/\nFile references (@path) in this skill are relative to this directory.\n\n${pluginResolvedBody}\n</skill-instruction>\n\n<user-request>\n$ARGUMENTS\n</user-request>`
 
-        const definition = {
+        const definition: LoadedPluginSkill = {
           name: namespacedName,
           description: formattedDescription,
           template: wrappedTemplate,
+          content: pluginResolvedBody,
+          location: resolveSymlink(skillMdPath),
           model: sanitizeModelField(data.model),
         }
 
-        const { name: _name, ...openCodeCompatible } = definition
-        skills[namespacedName] = openCodeCompatible as CommandDefinition
+        skills[namespacedName] = definition
 
         log(`Loaded plugin skill: ${namespacedName}`, { path: resolvedPath })
       } catch (error) {
@@ -66,4 +74,18 @@ export function loadPluginSkillsAsCommands(
   }
 
   return skills
+}
+
+export function loadPluginSkillsAsCommands(
+  plugins: LoadedPlugin[],
+  loadedSkills: Record<string, LoadedPluginSkill> = loadPluginSkills(plugins),
+): Record<string, CommandDefinition> {
+  const commands: Record<string, CommandDefinition> = {}
+
+  for (const [name, skill] of Object.entries(loadedSkills)) {
+    const { name: _name, content: _content, location: _location, ...command } = skill
+    commands[name] = command as CommandDefinition
+  }
+
+  return commands
 }
