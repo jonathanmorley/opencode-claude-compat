@@ -131,4 +131,35 @@ describe("loadPluginHooksConfigs pluginRoot stamping (#4458)", () => {
     )
     expect((action as { pluginRoot?: string }).pluginRoot).toBe(plugin.installPath)
   })
+
+  test("#given file and inline manifest hooks #when loaded #then it loads both configs", () => {
+    // given
+    const plugin = makePlugin("combined-plugin", {
+      hooks: {
+        PreToolUse: [
+          {
+            hooks: [{ type: "command", command: "echo file" }],
+          },
+        ],
+      },
+    })
+    plugin.manifest = {
+      name: "combined-plugin",
+      hooks: {
+        PostToolUse: [
+          {
+            hooks: [{ type: "command", command: "echo inline" }],
+          },
+        ],
+      },
+    }
+
+    // when
+    const configs = loadPluginHooksConfigs([plugin])
+
+    // then
+    expect(configs).toHaveLength(2)
+    expect(configs[0]?.hooks?.PreToolUse).toHaveLength(1)
+    expect(configs[1]?.hooks?.PostToolUse).toHaveLength(1)
+  })
 })

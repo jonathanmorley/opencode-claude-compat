@@ -28,32 +28,34 @@ export function loadPluginHooksConfigs(plugins: LoadedPlugin[]): HooksConfig[] {
   const configs: HooksConfig[] = []
 
   for (const plugin of plugins) {
-    const hooksPath =
-      plugin.hooksPath && existsSync(plugin.hooksPath) ? plugin.hooksPath : undefined
-    const inlineHooks =
-      plugin.manifest?.hooks && typeof plugin.manifest.hooks !== "string"
-        ? { hooks: plugin.manifest.hooks }
-        : undefined
-    if (!hooksPath && !inlineHooks) continue
-    const source = hooksPath ?? "manifest"
+    const hooksPath = plugin.hooksPath
+    const inlineHooks = plugin.manifest?.hooks
 
-    try {
-      let config: HooksConfig
-      if (hooksPath) {
-        config = JSON.parse(readFileSync(hooksPath, "utf-8")) as HooksConfig
-      } else if (inlineHooks) {
-        config = inlineHooks
-      } else {
-        continue
+    if (hooksPath && existsSync(hooksPath)) {
+      try {
+        const config = resolvePluginPaths(
+          JSON.parse(readFileSync(hooksPath, "utf-8")) as HooksConfig,
+          plugin.installPath,
+        )
+        stampPluginRoot(config, plugin.installPath)
+
+        configs.push(config)
+        log(`Loaded plugin hooks config from ${plugin.name}`, { path: hooksPath })
+      } catch (error) {
+        log(`Failed to load plugin hooks config: ${hooksPath}`, error)
       }
+    }
 
-      config = resolvePluginPaths(config, plugin.installPath)
-      stampPluginRoot(config, plugin.installPath)
+    if (inlineHooks && typeof inlineHooks !== "string") {
+      try {
+        const config = resolvePluginPaths({ hooks: inlineHooks }, plugin.installPath)
+        stampPluginRoot(config, plugin.installPath)
 
-      configs.push(config)
-      log(`Loaded plugin hooks config from ${plugin.name}`, { path: source })
-    } catch (error) {
-      log(`Failed to load plugin hooks config: ${source}`, error)
+        configs.push(config)
+        log(`Loaded plugin hooks config from ${plugin.name}`, { path: "manifest" })
+      } catch (error) {
+        log("Failed to load plugin hooks config: manifest", error)
+      }
     }
   }
 
