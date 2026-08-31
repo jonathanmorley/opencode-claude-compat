@@ -1,3 +1,12 @@
+## [0.1.1](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.1.0...v0.1.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* load inline plugin hooks ([b37e394](https://github.com/jonathanmorley/opencode-claude-compat/commit/b37e39463aa949240cabc9b89d938bff7d4c5b53))
+* preserve combined plugin hooks ([7e8c264](https://github.com/jonathanmorley/opencode-claude-compat/commit/7e8c26460e693268ce799087e969db6cb87bb739))
+* **release:** correct Octo STS trust policy subject to include repo/owner IDs ([b110ca9](https://github.com/jonathanmorley/opencode-claude-compat/commit/b110ca92f1657c1f1f21bd003a5163f93d8b26e0))
+
 # Changelog
 
 ## 0.1.0 — 2026-08-27

@@ -1,8 +1,8 @@
 {
   "name": "@jonathanmorley/opencode-claude-compat",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
-  "description": "Minimal OpenCode plugin that bridges Claude Code plugins/marketplaces (skills, commands, agents, hooks, MCPs) \u2014 extracted from oh-my-openagent's claude-code-compat-core.",
+  "description": "Minimal OpenCode plugin that bridges Claude Code plugins/marketplaces (skills, commands, agents, hooks, MCPs) — extracted from oh-my-openagent's claude-code-compat-core.",
   "license": "SUL-1.0",
   "main": "./dist/plugin.js",
   "exports": {
