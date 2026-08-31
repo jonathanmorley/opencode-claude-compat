@@ -2,8 +2,10 @@
 
 # Federate the GitHub Actions OIDC token for the GitHub App token used by
 # semantic-release. Scoped to pushes on `main` (the branch that runs release.yml).
+# The subject must match the Actions OIDC `sub` claim exactly, which embeds the
+# owner account id (605837) and repository id (1349671261).
 issuer: https://token.actions.githubusercontent.com
-subject: repo:jonathanmorley/opencode-claude-compat:ref:refs/heads/main
+subject: repo:jonathanmorley@605837/opencode-claude-compat@1349671261:ref:refs/heads/main
 
 # Permissions granted to the GitHub App installation token for this repository.
 # - contents: write    -> semantic-release commits the version bump + CHANGELOG
