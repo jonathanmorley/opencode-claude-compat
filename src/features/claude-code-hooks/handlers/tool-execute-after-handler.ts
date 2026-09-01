@@ -1,5 +1,4 @@
 import { isPlainObject } from "../../../vendor/utils/deep-merge"
-import type { PluginInput } from "@opencode-ai/plugin"
 import { loadClaudeHooksConfig } from "../config"
 import { loadPluginExtendedConfig } from "../config-loader"
 import {
@@ -12,6 +11,7 @@ import type { PluginConfig } from "../types"
 import { isHookDisabled } from "../hook-disabled"
 import { log } from "../../../shared/logger"
 import { normalizeHookText, normalizeHookTextList } from "../hook-text"
+import type { ToolHandlerContext } from "./context"
 
 function getStringValue(record: Record<string, unknown>, key: string): string | undefined {
 	const value = record[key]
@@ -79,7 +79,7 @@ function appendHookSections(outputText: string, sections: readonly (string | und
 	return [outputText, ...normalizedSections].join("\n\n")
 }
 
-export function createToolExecuteAfterHandler(ctx: PluginInput, config: PluginConfig) {
+export function createToolExecuteAfterHandler(ctx: ToolHandlerContext, config: PluginConfig) {
 	return async (
 		input: { tool: string; sessionID: string; callID: string },
 		output: { title: string; output: string; metadata: unknown } | undefined,
@@ -97,11 +97,14 @@ export function createToolExecuteAfterHandler(ctx: PluginInput, config: PluginCo
 		const claudeConfig = await loadClaudeHooksConfig()
 		const extendedConfig = await loadPluginExtendedConfig()
 
-		const postClient: PostToolUseClient = {
-			session: {
-				messages: (opts) => ctx.client.session.messages(opts),
-			},
-		}
+		const client = ctx.client
+		const postClient: PostToolUseClient | undefined = client
+			? {
+					 session: {
+						 messages: (opts) => client.session.messages(opts),
+					 },
+			  }
+			: undefined
 
 		const postCtx: PostToolUseContext = {
 			sessionId: input.sessionID,

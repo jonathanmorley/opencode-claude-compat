@@ -1,4 +1,3 @@
-import type { PluginInput } from "@opencode-ai/plugin"
 import { loadClaudeHooksConfig } from "../config"
 import { loadPluginExtendedConfig } from "../config-loader"
 import {
@@ -10,6 +9,7 @@ import type { PluginConfig } from "../types"
 import { isHookDisabled } from "../hook-disabled"
 import { log } from "../../../shared/logger"
 import { replaceToolArgs } from "../../../vendor/utils/replace-tool-args"
+import type { ToolHandlerContext } from "./context"
 
 function nonBlankString(value: unknown): string | null {
 	if (typeof value !== "string") {
@@ -23,7 +23,7 @@ function nonBlankString(value: unknown): string | null {
 function resolvePreToolUseCwd(
 	input: { tool: string; sessionID: string },
 	toolInput: Record<string, unknown>,
-	ctx: Pick<PluginInput, "directory" | "worktree">,
+	ctx: Pick<ToolHandlerContext, "directory" | "worktree">,
 ): string {
 	if (input.tool.trim().toLowerCase() !== "bash") {
 		return ctx.directory
@@ -37,7 +37,7 @@ function resolvePreToolUseCwd(
 	return nonBlankString(ctx.worktree) ?? ctx.directory
 }
 
-export function createToolExecuteBeforeHandler(ctx: PluginInput, config: PluginConfig) {
+export function createToolExecuteBeforeHandler(ctx: ToolHandlerContext, config: PluginConfig) {
 	return async (
 		input: { tool: string; sessionID: string; callID: string },
 		output: { args: Record<string, unknown> },

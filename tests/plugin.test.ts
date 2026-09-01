@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it } from "bun:test"
 import { join } from "node:path"
-import type { PluginInput } from "@opencode-ai/plugin"
-import plugin from "../src/plugin"
+import type { V1PluginInput } from "../src/v1-types"
+import plugin, { v1Plugin } from "../src/plugin"
+import { v2Plugin } from "../src/v2"
 import { loadClaudeHooksConfig, resetPluginHooksState } from "../src/features/claude-code-hooks/config"
 import { clearPluginComponentsCache } from "../src/features/claude-code-plugin-loader"
 import { buildPluginTree } from "./fixtures/plugin-tree"
 
-const ctx = { client: {}, project: {}, directory: "/tmp", $: {} } as unknown as PluginInput
+const ctx = { client: {}, directory: "/tmp", worktree: "/tmp" } as unknown as V1PluginInput
 
 const cleanups: Array<() => void> = []
 
@@ -21,7 +22,7 @@ afterEach(() => {
 
 describe("plugin entry", () => {
   it("exports a function returning hooks including config and tool hooks", async () => {
-    const hooks = await plugin(ctx)
+    const hooks = await v1Plugin(ctx)
     expect(hooks).toHaveProperty("config")
     // At minimum, config hook; tool hooks optional until hooks coverage lands
     expect(typeof hooks.config).toBe("function")
@@ -50,10 +51,18 @@ describe("plugin entry hook config keying", () => {
     process.env.CLAUDE_CONFIG_DIR = join(tree.pluginsHome, "no-config")
 
     // directory != process.cwd(): hooks must still be keyed by cwd to fire.
-    const hooks = await plugin({ ...ctx, directory: "/some/other/dir" })
+    const hooks = await v1Plugin({ ...ctx, directory: "/some/other/dir" })
     await hooks.config({})
 
     const config = await loadClaudeHooksConfig()
     expect(config?.PreToolUse?.[0]?.matcher).toBe("Bash")
+  })
+})
+
+describe("dual plugin entry", () => {
+  it("exposes V1 and V2 entries from the package default", () => {
+    expect(plugin.id).toBe("opencode-claude-compat")
+    expect(plugin.server).toBe(v1Plugin)
+    expect(plugin.setup).toBe(v2Plugin.setup)
   })
 })
