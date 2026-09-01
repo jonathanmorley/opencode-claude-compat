@@ -1,3 +1,10 @@
+# [0.2.0](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.1.2...v0.2.0) (2026-09-01)
+
+
+### Features
+
+* add OpenCode V2 plugin support ([#15](https://github.com/jonathanmorley/opencode-claude-compat/issues/15)) ([cf1608f](https://github.com/jonathanmorley/opencode-claude-compat/commit/cf1608fe96544e32c27defb7cec4b2aa69fe5aeb))
+
 ## [0.1.2](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.1.1...v0.1.2) (2026-08-31)
 
 
