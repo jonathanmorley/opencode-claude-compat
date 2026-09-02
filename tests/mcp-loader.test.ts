@@ -39,6 +39,30 @@ describe("loadPluginMcpServers (integration)", () => {
     }
   })
 
+  it("loads direct server maps from plugin .mcp.json files", async () => {
+    const tree = buildPluginTree({
+      name: "demo",
+      components: {
+        mcp: {
+          mcpServers: {
+            command: "npx",
+            args: ["-y", "@modelcontextprotocol/server-filesystem"],
+          },
+        },
+      },
+    })
+    cleanups.push(tree.cleanup)
+
+    const servers = await loadPluginMcpServers(tree.plugins)
+    const server = servers["demo:mcpServers"]!
+
+    expect(server).toEqual({
+      type: "local",
+      command: ["npx", "-y", "@modelcontextprotocol/server-filesystem"],
+      enabled: true,
+    })
+  })
+
   it("substitutes ${CLAUDE_PLUGIN_ROOT} in command and args", async () => {
     const tree = buildPluginTree({
       name: "demo",

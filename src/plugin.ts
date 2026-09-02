@@ -34,6 +34,19 @@ export const v1Plugin = (async (ctx: V1PluginInput) => {
         ...((c.agent as Record<string, unknown>) ?? {}),
         ...components.agents,
       }
+
+      const pluginSkillPaths = components.plugins.flatMap((plugin) =>
+        plugin.skillsDir ? [plugin.skillsDir] : [],
+      )
+      if (pluginSkillPaths.length > 0) {
+        const skills = (c.skills as Record<string, unknown>) ?? {}
+        const paths = Array.isArray(skills.paths) ? skills.paths : []
+        c.skills = {
+          ...skills,
+          paths: [...new Set([...paths, ...pluginSkillPaths])],
+        }
+      }
+
       c.mcp = {
         ...((c.mcp as Record<string, unknown>) ?? {}),
         ...components.mcpServers,

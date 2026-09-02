@@ -3,11 +3,25 @@ import type { McpServerConfig } from "../claude-code-mcp-loader/types"
 import { expandEnvVarsInObject } from "../claude-code-mcp-loader/env-expander"
 import { shouldLoadMcpServer } from "../claude-code-mcp-loader/scope-filter"
 import { transformMcpServer } from "../claude-code-mcp-loader/transformer"
-import type { ClaudeCodeMcpConfig } from "../claude-code-mcp-loader/types"
+import type { ClaudeCodeMcpConfig, ClaudeCodeMcpServer } from "../claude-code-mcp-loader/types"
 import { log } from "../../shared/logger"
 import type { LoadedPlugin } from "./types"
 import { resolvePluginPaths } from "./plugin-path-resolver"
 import { bunFile } from "../../shared/bun-file-shim"
+
+function getMcpServers(config: ClaudeCodeMcpConfig): Record<string, ClaudeCodeMcpServer> {
+  const nestedServers = config.mcpServers
+  if (!nestedServers) {
+    return config as unknown as Record<string, ClaudeCodeMcpServer>
+  }
+
+  // A manifest may contain a direct map with a server named "mcpServers".
+  if (typeof nestedServers.command === "string" || typeof nestedServers.url === "string") {
+    return config as unknown as Record<string, ClaudeCodeMcpServer>
+  }
+
+  return nestedServers
+}
 
 export async function loadPluginMcpServers(
   plugins: LoadedPlugin[],
@@ -25,9 +39,9 @@ export async function loadPluginMcpServers(
       config = resolvePluginPaths(config, plugin.installPath)
       config = expandEnvVarsInObject(config)
 
-      if (!config.mcpServers) continue
+      const mcpServers = getMcpServers(config)
 
-      for (const [name, serverConfig] of Object.entries(config.mcpServers)) {
+      for (const [name, serverConfig] of Object.entries(mcpServers)) {
         if (!shouldLoadMcpServer(serverConfig, cwd)) {
           log(`Skipping local plugin MCP server "${name}" outside current cwd`, {
             path: plugin.mcpPath,
