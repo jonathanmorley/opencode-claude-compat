@@ -26,10 +26,14 @@ afterEach(() => {
 function createContext(options: {
   commands?: CommandV2Info[]
   agents?: AgentV2Info[]
+  mcp?: boolean
+  tool?: boolean
 } = {}) {
   const commands = new Map((options.commands ?? []).map((command) => [command.name, command]))
   const agents = new Map((options.agents ?? []).map((agent) => [agent.id, agent]))
   const sources: SkillV2Source[] = []
+  const mcpServers = new Map<string, unknown>()
+  const toolHooks = new Map<string, (event: unknown) => Promise<void>>()
 
   const commandTransform: PluginContext["command"]["transform"] = async (callback) => {
     callback({
@@ -70,13 +74,32 @@ function createContext(options: {
     return { dispose: async () => {} }
   }
 
+  const mcp = options.mcp
+    ? {
+        transform: async (callback: (draft: { set: (name: string, config: unknown) => void }) => void) => {
+          callback({ set: (name, config) => mcpServers.set(name, config) })
+        },
+      }
+    : undefined
+
+  const tool = options.tool
+    ? {
+        hook: async (name: string, callback: (event: unknown) => Promise<void>) => {
+          toolHooks.set(name, callback)
+          return { dispose: async () => {} }
+        },
+      }
+    : undefined
+
   const context = {
     command: { transform: commandTransform },
     agent: { transform: agentTransform },
     skill: { transform: skillTransform },
+    ...(mcp ? { mcp } : {}),
+    ...(tool ? { tool } : {}),
   } as unknown as PluginContext
 
-  return { context, commands, agents, sources }
+  return { context, commands, agents, sources, mcpServers, toolHooks }
 }
 
 function configurePluginHome(tree: ReturnType<typeof buildPluginTree>): void {
@@ -100,6 +123,58 @@ function existingAgent(id: string): AgentV2Info {
 }
 
 describe("V2 plugin setup", () => {
+  it("registers MCP servers and tool hooks when the V2 context provides them", async () => {
+    const tree = buildPluginTree({
+      name: "demo",
+      components: {
+        mcp: { mcpServers: { docs: { type: "stdio", command: "docs" } } },
+        hooks: {
+          hooks: {
+            PreToolUse: [
+              { matcher: "Bash", hooks: [{ type: "command", command: "echo '{}'" }] },
+            ],
+          },
+        },
+      },
+    })
+    cleanups.push(tree.cleanup)
+    configurePluginHome(tree)
+    const harness = createContext({ mcp: true, tool: true })
+
+    await setupV2(harness.context)
+
+    expect(harness.mcpServers.get("demo:docs")).toEqual({
+      type: "local",
+      command: ["docs"],
+      enabled: true,
+    })
+    expect([...harness.toolHooks.keys()]).toEqual([
+      "execute.before",
+      "execute.after",
+    ])
+
+    const beforeEvent = {
+      tool: "Bash",
+      sessionID: "session",
+      id: "call-1",
+      input: {},
+    }
+    await harness.toolHooks.get("execute.before")!(beforeEvent)
+
+    const afterEvent = {
+      tool: "Bash",
+      sessionID: "session",
+      id: "call-1",
+      status: "completed" as const,
+      result: { metadata: { observed: true } },
+    }
+    await harness.toolHooks.get("execute.after")!(afterEvent)
+    expect(afterEvent.result as Record<string, unknown>).toEqual({
+      metadata: { observed: true },
+      output: "",
+    })
+  })
+
   it("registers Claude skills as embedded V2 skill sources", async () => {
     const tree = buildPluginTree({ name: "demo", components: { skills: ["greet"] } })
     cleanups.push(tree.cleanup)

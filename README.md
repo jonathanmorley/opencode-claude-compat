@@ -28,9 +28,9 @@ The package root exports the V1 `server` entry and the V2 `setup` entry. The
 `./v2` subpath is also available for direct imports. The V2 entrypoint targets
 the V2 Promise plugin contract and registers embedded Claude skills. Its
 command and agent draft APIs are update-only, so they can modify matching host
-definitions but cannot add new Claude commands or agents. The V2 host does not
-expose MCP or tool-hook domains; those features are available through the V1
-entry.
+definitions but cannot add new Claude commands or agents. When a V2 host
+provides MCP and tool-hook domains, the V2 entry uses them; older V2 hosts do
+not expose those domains and continue to use the V1 entry for those features.
 
 ## What it bridges
 
