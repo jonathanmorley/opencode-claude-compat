@@ -1,3 +1,10 @@
+## [0.2.2](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.2.1...v0.2.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* silence plugin startup logs ([#17](https://github.com/jonathanmorley/opencode-claude-compat/issues/17)) ([60414cc](https://github.com/jonathanmorley/opencode-claude-compat/commit/60414cc716a62eb64d1536f7a19fb0ffad64fe66))
+
 ## [0.2.1](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.2.0...v0.2.1) (2026-09-02)
 
 
