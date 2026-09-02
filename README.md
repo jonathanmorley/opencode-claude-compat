@@ -16,7 +16,7 @@ Or add it to your OpenCode config directly:
 }
 ```
 
-OpenCode V2 uses the `plugins` configuration key with the package root:
+OpenCode beta versions use the `plugin` configuration key with the package root:
 
 ```json
 {
@@ -59,6 +59,16 @@ bun test
 bun run build
 npx tsc --noEmit
 ```
+
+The optional host integration tests compare effective session tools with and
+without the plugin under both installed OpenCode versions:
+
+```bash
+bun run test:harness
+```
+
+Override the binaries or model when testing different installations with
+`OPENCODE_V1_BIN`, `OPENCODE_V2_BIN`, and `OPENCODE_HARNESS_MODEL`.
 
 CI runs `bun test` + `build` + `typecheck` on every push/PR (`.github/workflows/ci.yml`); npm publishing happens through the release pipeline.
 
