@@ -1,3 +1,10 @@
+## [0.2.1](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.2.0...v0.2.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **v2:** register optional MCP and tool hooks ([#16](https://github.com/jonathanmorley/opencode-claude-compat/issues/16)) ([a01a862](https://github.com/jonathanmorley/opencode-claude-compat/commit/a01a862198c393f89720f0a20607ff25bfefe188))
+
 # [0.2.0](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.1.2...v0.2.0) (2026-09-01)
 
 

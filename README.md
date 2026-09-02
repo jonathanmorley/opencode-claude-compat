@@ -16,7 +16,7 @@ Or add it to your OpenCode config directly:
 }
 ```
 
-OpenCode V2 uses the `plugins` configuration key with the package root:
+OpenCode beta versions use the `plugin` configuration key with the package root:
 
 ```json
 {
@@ -28,9 +28,9 @@ The package root exports the V1 `server` entry and the V2 `setup` entry. The
 `./v2` subpath is also available for direct imports. The V2 entrypoint targets
 the V2 Promise plugin contract and registers embedded Claude skills. Its
 command and agent draft APIs are update-only, so they can modify matching host
-definitions but cannot add new Claude commands or agents. The V2 host does not
-expose MCP or tool-hook domains; those features are available through the V1
-entry.
+definitions but cannot add new Claude commands or agents. When a V2 host
+provides MCP and tool-hook domains, the V2 entry uses them; older V2 hosts do
+not expose those domains and continue to use the V1 entry for those features.
 
 ## What it bridges
 
@@ -59,6 +59,16 @@ bun test
 bun run build
 npx tsc --noEmit
 ```
+
+The optional host integration tests compare effective session tools with and
+without the plugin under both installed OpenCode versions:
+
+```bash
+bun run test:harness
+```
+
+Override the binaries or model when testing different installations with
+`OPENCODE_V1_BIN`, `OPENCODE_V2_BIN`, and `OPENCODE_HARNESS_MODEL`.
 
 CI runs `bun test` + `build` + `typecheck` on every push/PR (`.github/workflows/ci.yml`); npm publishing happens through the release pipeline.
 

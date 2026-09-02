@@ -5,6 +5,10 @@ import type {
   PluginContext as OpenCodeV2PluginContext,
   SkillDraft,
 } from "@opencode-ai/plugin/v2/promise"
+import { setPluginHooksConfigs } from "./features/claude-code-hooks/config"
+import { createToolExecuteAfterHandler } from "./features/claude-code-hooks/handlers/tool-execute-after-handler"
+import type { ToolHandlerClient, ToolHandlerContext } from "./features/claude-code-hooks/handlers/context"
+import { createToolExecuteBeforeHandler } from "./features/claude-code-hooks/handlers/tool-execute-before-handler"
 import type {
   AgentV2Info,
   CommandV2Info,
@@ -24,6 +28,41 @@ export type V2SkillDraft = SkillDraft
 export type V2Skill = SkillV2Info
 export type V2SkillSource = SkillV2Source
 
+type V2McpContext = {
+  transform: (callback: (draft: { set: (name: string, config: unknown) => void }) => void) => Promise<unknown>
+}
+
+type V2ToolExecuteBeforeEvent = {
+  tool: string
+  sessionID: string
+  id?: string
+  callID?: string
+  input: Record<string, unknown>
+}
+
+type V2ToolExecuteAfterEvent = {
+  tool: string
+  sessionID: string
+  id?: string
+  callID?: string
+  status: "completed" | "error"
+  result?: unknown
+}
+
+type V2ToolContext = {
+  hook: (
+    name: "execute.before" | "execute.after",
+    callback: (event: V2ToolExecuteBeforeEvent | V2ToolExecuteAfterEvent) => Promise<void>,
+  ) => Promise<unknown>
+}
+
+type V2CapabilityContext = V2PluginContext & {
+  mcp?: V2McpContext
+  tool?: V2ToolContext
+  location?: { directory?: string }
+  client?: ToolHandlerClient
+}
+
 export const setupV2 = async (ctx: V2PluginContext): Promise<void> => {
   const components = await loadAllPluginComponents()
 
@@ -31,12 +70,8 @@ export const setupV2 = async (ctx: V2PluginContext): Promise<void> => {
   await registerAgents(ctx, components.agents)
   await registerSkills(ctx, components.skillDefinitions ?? {})
 
-  if (Object.keys(components.mcpServers).length > 0) {
-    log("V2 plugin API has no MCP domain; skipping Claude Code MCP servers")
-  }
-  if (components.hooksConfigs.length > 0) {
-    log("V2 plugin API has no tool hook domain; skipping Claude Code hooks")
-  }
+  await registerMcpServers(ctx, components.mcpServers)
+  await registerToolHooks(ctx, components.hooksConfigs)
 }
 
 const pluginDefinition: V2Plugin = {
@@ -85,6 +120,88 @@ async function registerAgents(
       draft.update(id, (agent) => applyAgentDefinition(agent, definition))
     }
   })
+}
+
+async function registerMcpServers(
+  ctx: V2PluginContext,
+  servers: Record<string, unknown>,
+): Promise<void> {
+  if (Object.keys(servers).length === 0) return
+
+  const mcp = (ctx as V2CapabilityContext).mcp
+  if (!mcp || typeof mcp.transform !== "function") {
+    log("V2 plugin API has no MCP domain; skipping Claude Code MCP servers")
+    return
+  }
+
+  await mcp.transform((draft) => {
+    for (const [name, config] of Object.entries(servers)) {
+      draft.set(name, config)
+    }
+  })
+}
+
+async function registerToolHooks(
+  ctx: V2PluginContext,
+  hooksConfigs: Parameters<typeof setPluginHooksConfigs>[1],
+): Promise<void> {
+  if (hooksConfigs.length === 0) return
+
+  const tool = (ctx as V2CapabilityContext).tool
+  if (!tool || typeof tool.hook !== "function") {
+    log("V2 plugin API has no tool hook domain; skipping Claude Code hooks")
+    return
+  }
+
+  setPluginHooksConfigs(process.cwd(), hooksConfigs)
+  const handlerContext = createToolHandlerContext(ctx)
+  const config = {}
+
+  const before = createToolExecuteBeforeHandler(handlerContext, config)
+  await tool.hook("execute.before", async (event) => {
+    if (!("input" in event)) return
+    const callID = getToolCallID(event)
+    if (!callID) return
+
+    const output = { args: event.input }
+    await before({ ...event, callID }, output)
+    event.input = output.args
+  })
+
+  const after = createToolExecuteAfterHandler(handlerContext, config)
+  await tool.hook("execute.after", async (event) => {
+    if (!("result" in event) || event.status !== "completed") return
+    const callID = getToolCallID(event)
+    if (!callID || !isRecord(event.result)) return
+
+    const result = event.result
+    const output = {
+      title: typeof result.title === "string" ? result.title : event.tool,
+      output: typeof result.output === "string" ? result.output : "",
+      metadata: result.metadata,
+    }
+    await after({ ...event, callID }, output)
+    event.result = { ...result, output: output.output, metadata: output.metadata }
+  })
+}
+
+function getToolCallID(event: { id?: string; callID?: string }): string | undefined {
+  return event.id ?? event.callID
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function createToolHandlerContext(ctx: V2PluginContext): ToolHandlerContext {
+  const capabilityContext = ctx as V2CapabilityContext
+  const directory = capabilityContext.location?.directory ?? process.cwd()
+
+  return {
+    directory,
+    worktree: directory,
+    client: capabilityContext.client,
+  }
 }
 
 async function registerSkills(

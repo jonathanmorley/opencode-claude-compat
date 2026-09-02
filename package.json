@@ -1,6 +1,6 @@
 {
   "name": "@jonathanmorley/opencode-claude-compat",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "description": "Minimal OpenCode plugin that bridges Claude Code plugins/marketplaces (skills, commands, agents, hooks, MCPs) — extracted from oh-my-openagent's claude-code-compat-core.",
   "license": "SUL-1.0",
@@ -27,6 +27,7 @@
   "scripts": {
     "build": "bun build ./src/plugin.ts ./src/v2.ts --outdir ./dist --target bun --minify --external @opencode-ai/plugin",
     "test": "bun test",
+    "test:harness": "bun run build && OPENCODE_HARNESS_TEST=1 bun test tests/harness.test.ts",
     "test:watch": "bun test --watch",
     "lint": "echo lint placeholder",
     "format": "echo format placeholder",
