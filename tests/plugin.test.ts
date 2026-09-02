@@ -73,6 +73,30 @@ describe("plugin entry hook config keying", () => {
   })
 })
 
+describe("plugin entry skill config", () => {
+  it("adds discovered plugin skill directories to OpenCode skill paths", async () => {
+    const tree = buildPluginTree({
+      name: "demo",
+      components: { skills: ["greet"] },
+    })
+    cleanups.push(tree.cleanup)
+    process.env.CLAUDE_PLUGINS_HOME = tree.pluginsHome
+    process.env.CLAUDE_SETTINGS_PATH = join(tree.pluginsHome, "no-settings.json")
+    process.env.CLAUDE_CONFIG_DIR = join(tree.pluginsHome, "no-config")
+
+    const hooks = await v1Plugin(ctx)
+    const pluginSkillsPath = join(tree.installPath, "skills")
+    const config = { skills: { paths: ["/existing/skills"] } }
+
+    await hooks.config(config)
+
+    expect(config.skills.paths).toEqual([
+      "/existing/skills",
+      pluginSkillsPath,
+    ])
+  })
+})
+
 describe("dual plugin entry", () => {
   it("exposes V1 and V2 entries from the package default", () => {
     expect(plugin.id).toBe("opencode-claude-compat")
