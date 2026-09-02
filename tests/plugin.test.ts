@@ -27,6 +27,20 @@ describe("plugin entry", () => {
     // At minimum, config hook; tool hooks optional until hooks coverage lands
     expect(typeof hooks.config).toBe("function")
   })
+
+  it("does not print a startup message", async () => {
+    const messages: unknown[][] = []
+    const originalLog = console.log
+    console.log = (...args: unknown[]) => messages.push(args)
+
+    try {
+      await v1Plugin(ctx)
+    } finally {
+      console.log = originalLog
+    }
+
+    expect(messages).toEqual([])
+  })
 })
 
 describe("plugin entry hook config keying", () => {

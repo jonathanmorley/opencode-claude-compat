@@ -123,6 +123,24 @@ function existingAgent(id: string): AgentV2Info {
 }
 
 describe("V2 plugin setup", () => {
+  it("does not print a startup message", async () => {
+    const tree = buildPluginTree({ name: "demo" })
+    cleanups.push(tree.cleanup)
+    configurePluginHome(tree)
+    const harness = createContext()
+    const messages: unknown[][] = []
+    const originalLog = console.log
+    console.log = (...args: unknown[]) => messages.push(args)
+
+    try {
+      await setupV2(harness.context)
+    } finally {
+      console.log = originalLog
+    }
+
+    expect(messages).toEqual([])
+  })
+
   it("registers MCP servers and tool hooks when the V2 context provides them", async () => {
     const tree = buildPluginTree({
       name: "demo",

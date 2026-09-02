@@ -64,8 +64,6 @@ type V2CapabilityContext = V2PluginContext & {
 }
 
 export const setupV2 = async (ctx: V2PluginContext): Promise<void> => {
-  console.log("[opencode-claude-compat] V2 plugin loaded")
-
   const components = await loadAllPluginComponents()
 
   await registerCommands(ctx, { ...components.commands, ...components.skills })
