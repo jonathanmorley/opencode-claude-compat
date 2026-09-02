@@ -1,3 +1,10 @@
+## [0.2.3](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.2.2...v0.2.3) (2026-09-02)
+
+
+### Bug Fixes
+
+* load V1 plugin skills and MCP servers ([#18](https://github.com/jonathanmorley/opencode-claude-compat/issues/18)) ([c130750](https://github.com/jonathanmorley/opencode-claude-compat/commit/c130750053245f83b3f2f36a7d294790430417b2))
+
 ## [0.2.2](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.2.1...v0.2.2) (2026-09-02)
 
 
