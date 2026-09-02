@@ -100,6 +100,24 @@ function existingAgent(id: string): AgentV2Info {
 }
 
 describe("V2 plugin setup", () => {
+  it("does not print a startup message", async () => {
+    const tree = buildPluginTree({ name: "demo" })
+    cleanups.push(tree.cleanup)
+    configurePluginHome(tree)
+    const harness = createContext()
+    const messages: unknown[][] = []
+    const originalLog = console.log
+    console.log = (...args: unknown[]) => messages.push(args)
+
+    try {
+      await setupV2(harness.context)
+    } finally {
+      console.log = originalLog
+    }
+
+    expect(messages).toEqual([])
+  })
+
   it("registers Claude skills as embedded V2 skill sources", async () => {
     const tree = buildPluginTree({ name: "demo", components: { skills: ["greet"] } })
     cleanups.push(tree.cleanup)

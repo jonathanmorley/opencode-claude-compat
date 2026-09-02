@@ -18,7 +18,6 @@ import { v2Plugin } from "./v2"
 
 export const v1Plugin = (async (ctx: V1PluginInput) => {
   const config: PluginConfig = {}
-  console.log("[opencode-claude-compat] plugin loaded")
 
   return {
     config: async (cfg) => {
