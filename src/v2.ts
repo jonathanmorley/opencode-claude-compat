@@ -1,3 +1,4 @@
+import { dirname } from "node:path"
 import type {
   AgentDraft,
   CommandDraft,
@@ -61,6 +62,42 @@ type V2CapabilityContext = V2PluginContext & {
   tool?: V2ToolContext
   location?: { directory?: string }
   client?: ToolHandlerClient
+  session?: { prompt?: (input: Record<string, unknown>) => Promise<unknown> }
+}
+
+/**
+ * Editor shapes across V2 host generations. Newer hosts expose update-style
+ * drafts (`get`/`update`, template-based commands, embedded skill sources);
+ * stable hosts expose `add`-only editors (execute-based commands, skill
+ * infos). Each registration below prefers the update-style API when present
+ * and falls back to the stable API otherwise.
+ */
+interface StableCommandInvocation {
+  sessionID: string
+  prompt: { text?: string; [key: string]: unknown }
+  delivery: "steer" | "queue"
+}
+
+interface StableCommandEditor {
+  add: (definition: {
+    name: string
+    description?: string
+    execute: (input: StableCommandInvocation) => Promise<void>
+  }) => void
+}
+
+interface StableSkillEditor {
+  add: (skill: {
+    id: string
+    name: string
+    description?: string
+    path: string
+    content: string
+  }) => void
+}
+
+function renderCommandTemplate(template: string, args: string): string {
+  return template.replaceAll("$ARGUMENTS", args)
 }
 
 export const setupV2 = async (ctx: V2PluginContext): Promise<void> => {
@@ -92,15 +129,54 @@ async function registerCommands(
   if (Object.keys(definitions).length === 0) return
 
   await ctx.command.transform((draft) => {
-    for (const [name, definition] of Object.entries(definitions)) {
-      if (!draft.get(name)) {
-        log(`V2 CommandDraft cannot add Claude Code command: ${name}`)
-        continue
-      }
+    const updatable = draft as unknown as Partial<Pick<CommandDraft, "get" | "update">>
+    if (typeof updatable.get === "function" && typeof updatable.update === "function") {
+      for (const [name, definition] of Object.entries(definitions)) {
+        if (!updatable.get(name)) {
+          log(`V2 CommandDraft cannot add Claude Code command: ${name}`)
+          continue
+        }
 
-      draft.update(name, (command) => applyCommandDefinition(command, definition))
+        updatable.update(name, (command) => applyCommandDefinition(command, definition))
+      }
+      return
+    }
+
+    const stable = draft as unknown as Partial<StableCommandEditor>
+    if (typeof stable.add !== "function") {
+      log("V2 command editor supports neither update nor add; skipping Claude Code commands")
+      return
+    }
+
+    const prompt = sessionPrompt(ctx)
+    if (!prompt) {
+      log("V2 host does not expose session.prompt; skipping Claude Code commands")
+      return
+    }
+
+    for (const [name, definition] of Object.entries(definitions)) {
+      const template = definition.template
+      stable.add({
+        name,
+        ...(definition.description ? { description: definition.description } : {}),
+        execute: async ({ sessionID, prompt: invocation, delivery }) => {
+          await prompt({
+            ...invocation,
+            sessionID,
+            text: renderCommandTemplate(template, invocation.text ?? ""),
+            delivery,
+          })
+        },
+      })
     }
   })
+}
+
+function sessionPrompt(
+  ctx: V2PluginContext,
+): ((input: Record<string, unknown>) => Promise<unknown>) | undefined {
+  const prompt = (ctx as V2CapabilityContext).session?.prompt
+  return typeof prompt === "function" ? prompt : undefined
 }
 
 async function registerAgents(
@@ -111,13 +187,21 @@ async function registerAgents(
 
   log("V2 AgentDraft uses update to apply Claude Code agent definitions")
   await ctx.agent.transform((draft) => {
+    const updatable = draft as unknown as Partial<Pick<AgentDraft, "get" | "update">>
+    if (typeof updatable.get !== "function" || typeof updatable.update !== "function") {
+      log(
+        `V2 agent editor cannot add Claude Code agents; skipping ${Object.keys(definitions).length} agent definition(s)`,
+      )
+      return
+    }
+
     for (const [id, definition] of Object.entries(definitions)) {
-      if (!draft.get(id)) {
+      if (!updatable.get(id)) {
         log(`V2 AgentDraft cannot add Claude Code agent: ${id}`)
         continue
       }
 
-      draft.update(id, (agent) => applyAgentDefinition(agent, definition))
+      updatable.update(id, (agent) => applyAgentDefinition(agent, definition))
     }
   })
 }
@@ -155,11 +239,16 @@ async function registerToolHooks(
 
   setPluginHooksConfigs(process.cwd(), hooksConfigs)
   const handlerContext = createToolHandlerContext(ctx)
+  // Mirror the keying for the instance directory so hooks fire when it
+  // differs from process.cwd().
+  if (handlerContext.directory !== process.cwd()) {
+    setPluginHooksConfigs(handlerContext.directory, hooksConfigs)
+  }
   const config = {}
 
   const before = createToolExecuteBeforeHandler(handlerContext, config)
   await tool.hook("execute.before", async (event) => {
-    if (!("input" in event)) return
+    if (!("input" in event) || !isRecord(event.input)) return
     const callID = getToolCallID(event)
     if (!callID) return
 
@@ -175,14 +264,54 @@ async function registerToolHooks(
     if (!callID || !isRecord(event.result)) return
 
     const result = event.result
+    // Stable hosts report tool output as `content` (string or content parts);
+    // newer hosts use the V1-shaped `{ title, output, metadata }`.
+    const stableText = stableResultText(result)
     const output = {
       title: typeof result.title === "string" ? result.title : event.tool,
-      output: typeof result.output === "string" ? result.output : "",
+      output: typeof result.output === "string" ? result.output : (stableText ?? ""),
       metadata: result.metadata,
     }
     await after({ ...event, callID }, output)
-    event.result = { ...result, output: output.output, metadata: output.metadata }
+    event.result =
+      stableText === undefined
+        ? { ...result, output: output.output, metadata: output.metadata }
+        : withStableResultText(result, stableText, output.output)
   })
+}
+
+/**
+ * Extract displayable text from a stable-host tool result, or `undefined`
+ * when the result uses the newer `{ title, output, metadata }` shape.
+ */
+function stableResultText(result: Record<string, unknown>): string | undefined {
+  if (typeof result.content === "string") return result.content
+  if (Array.isArray(result.content)) {
+    return result.content
+      .filter((part) => isRecord(part) && part.type === "text" && typeof part.text === "string")
+      .map((part) => (part as { text: string }).text)
+      .join("\n\n")
+  }
+  return undefined
+}
+
+/**
+ * Write hook-appended text back into a stable-host result, preserving the
+ * original content shape (string stays a string; part lists keep their parts
+ * and gain the appended text).
+ */
+function withStableResultText(
+  result: Record<string, unknown>,
+  original: string,
+  updated: string,
+): Record<string, unknown> {
+  if (updated === original) return result
+  if (typeof result.content === "string") return { ...result, content: updated }
+  const delta = updated.startsWith(original) ? updated.slice(original.length).replace(/^\n+/, "") : updated
+  return {
+    ...result,
+    content: [...(result.content as unknown[]), { type: "text", text: delta }],
+  }
 }
 
 function getToolCallID(event: { id?: string; callID?: string }): string | undefined {
@@ -211,16 +340,36 @@ async function registerSkills(
   if (Object.keys(definitions).length === 0) return
 
   await ctx.skill.transform((draft) => {
-    for (const definition of Object.values(definitions)) {
-      const skill: V2Skill = {
-        name: definition.name,
-        description: definition.description,
-        location: definition.location,
-        content: definition.content,
-        slash: true,
-      }
+    const sourcing = draft as unknown as Partial<Pick<SkillDraft, "source">>
+    if (typeof sourcing.source === "function") {
+      for (const definition of Object.values(definitions)) {
+        const skill: V2Skill = {
+          name: definition.name,
+          description: definition.description,
+          location: definition.location,
+          content: definition.content,
+          slash: true,
+        }
 
-      draft.source({ type: "embedded", skill })
+        sourcing.source({ type: "embedded", skill })
+      }
+      return
+    }
+
+    const stable = draft as unknown as Partial<StableSkillEditor>
+    if (typeof stable.add !== "function") {
+      log("V2 skill editor supports neither source nor add; skipping Claude Code skills")
+      return
+    }
+
+    for (const definition of Object.values(definitions)) {
+      stable.add({
+        id: definition.name,
+        name: definition.name,
+        ...(definition.description ? { description: definition.description } : {}),
+        path: dirname(definition.location),
+        content: definition.content,
+      })
     }
   })
 }
