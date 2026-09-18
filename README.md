@@ -26,11 +26,13 @@ OpenCode beta versions use the `plugin` configuration key with the package root:
 
 The package root exports the V1 `server` entry and the V2 `setup` entry. The
 `./v2` subpath is also available for direct imports. The V2 entrypoint targets
-the V2 Promise plugin contract and registers embedded Claude skills. Its
-command and agent draft APIs are update-only, so they can modify matching host
-definitions but cannot add new Claude commands or agents. When a V2 host
-provides MCP and tool-hook domains, the V2 entry uses them; older V2 hosts do
-not expose those domains and continue to use the V1 entry for those features.
+the V2 Promise plugin contract and detects host capabilities at runtime: stable
+hosts get add-based registration (commands with `execute`, skills with `add`),
+while newer hosts with update-style draft APIs (`get`/`update`/`template`,
+embedded skill sources) use those instead. Either way, Claude skills are
+registered; agents can only update matching host definitions, never add new
+ones. When a V2 host provides MCP and tool-hook domains, the V2 entry uses
+them; hosts without those domains skip MCP servers and hooks.
 
 ## What it bridges
 
@@ -41,6 +43,43 @@ not expose those domains and continue to use the V1 entry for those features.
 - **MCP servers** (`mcpServers` from plugin manifests + `.mcp.json`) → `mcp` config (env expansion, allowed-env filter)
 
 Discovery reads `~/.claude/plugins/installed_plugins.json` plus the plugin cache under `~/.claude/plugins/cache` (override with `CLAUDE_PLUGINS_HOME`).
+
+## OpenCode v2 support
+
+The package exposes a dual entrypoint (`src/plugin.ts`):
+
+- OpenCode **v2** reads `id` + `setup(ctx)` (`src/v2.ts`) and registers each
+  concern on the domain that owns it: commands via `ctx.command.transform`,
+  skills via `ctx.skill.transform`, MCP servers via `ctx.mcp.transform`, and
+  Claude hooks via `ctx.tool.hook("execute.before" | "execute.after")`. On
+  stable hosts the plugin adds commands (template with `$ARGUMENTS`
+  substitution, including a slash-command alias for each skill, matching v1)
+  and skills; hosts with update-style draft APIs get template-based updates
+  of matching definitions instead.
+- OpenCode **v1** calls `server(ctx)` (see `src/v1-types.ts`) and receives the
+  legacy `{ config, "tool.execute.before", "tool.execute.after" }` hooks.
+
+V2 config uses the `plugins` key (v2 normalizes the legacy `plugin` key
+automatically):
+
+```json
+{
+  "plugins": ["@jonathanmorley/opencode-claude-compat"]
+}
+```
+
+### Known v2 limitation: agents
+
+Agents can only update matching host definitions, never add new ones — on
+every host generation `ctx.agent.transform` lacks an `add` operation, so
+discovered agents that match nothing are skipped with a warning. Commands,
+skills, MCP servers, and hooks bridge fully. This will be revisited if
+upstream adds agent registration to the v2 plugin API.
+
+On stable hosts, v2 commands are execute-based (`{ name, description,
+execute }`), so the v1 command fields `agent`, `model`, `subtask`, and
+`handoffs` have no stable equivalent and are dropped there (description and
+template carry over); hosts with template-based draft APIs keep them.
 
 ## What it does NOT do
 
