@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.2.3...v0.3.0) (2026-09-18)
+
+
+### Features
+
+* register Claude components on stable v2 hosts ([#26](https://github.com/jonathanmorley/opencode-claude-compat/issues/26)) ([3b59c6a](https://github.com/jonathanmorley/opencode-claude-compat/commit/3b59c6a6d03e0dcf1d1315b3c8667ea3258f28ac))
+
 ## [0.2.3](https://github.com/jonathanmorley/opencode-claude-compat/compare/v0.2.2...v0.2.3) (2026-09-02)
 
 
