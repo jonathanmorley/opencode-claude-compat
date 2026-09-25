@@ -174,7 +174,7 @@ function isPluginHookMatcher(m: unknown): m is PluginHookMatcher {
 /**
  * Intersect plugin hook allowedEnvVars with the MCP env allowlist.
  * For HTTP hooks: filter allowedEnvVars to only allowlisted vars.
- * For command hooks: set allowedEnvVars to the full MCP allowlist.
+ * For command hooks: omit allowedEnvVars so the command executor receives the full process env.
  */
 function applyMcpEnvAllowlist(action: HookAction): HookAction {
   const allowedVars = getAllowedMcpEnvVars()
@@ -188,7 +188,8 @@ function applyMcpEnvAllowlist(action: HookAction): HookAction {
   }
 
   if (action.type === "command") {
-    return { ...action, allowedEnvVars: [...allowedVars] }
+    const { allowedEnvVars: _allowedEnvVars, ...commandAction } = action
+    return commandAction
   }
 
   return action
