@@ -37,7 +37,7 @@ export async function loadPluginMcpServers(
       let config = JSON.parse(content) as ClaudeCodeMcpConfig
 
       config = resolvePluginPaths(config, plugin.installPath)
-      config = expandEnvVarsInObject(config)
+      config = expandEnvVarsInObject(config, { trusted: true })
 
       const mcpServers = getMcpServers(config)
 
@@ -57,7 +57,7 @@ export async function loadPluginMcpServers(
         }
 
         try {
-          const transformed = transformMcpServer(name, serverConfig)
+          const transformed = transformMcpServer(name, serverConfig, { trusted: true })
           const namespacedName = `${plugin.name}:${name}`
           servers[namespacedName] = transformed
           log(`Loaded plugin MCP server: ${namespacedName}`, { path: plugin.mcpPath })

@@ -24,6 +24,17 @@ describe("resolvePluginPath", () => {
     // then
     expect(result).toBe('bash "/tmp/plugin-root/hooks/launcher.sh" "/tmp/plugin-root/hooks/run.py" --quiet')
   })
+
+  test("#given a bare plugin root variable #when resolving the path #then it replaces only the exact variable name", () => {
+    // given
+    const path = "$CLAUDE_PLUGIN_ROOT/bin/x $CLAUDE_PLUGIN_ROOTX"
+
+    // when
+    const result = resolvePluginPath(path, "/p")
+
+    // then
+    expect(result).toBe("/p/bin/x $CLAUDE_PLUGIN_ROOTX")
+  })
 })
 
 describe("resolvePluginPaths", () => {
