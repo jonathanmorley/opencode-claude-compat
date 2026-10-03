@@ -36,7 +36,7 @@ jobs:
       # Mint a short-lived, tightly-scoped GitHub App token (see
       # .github/chainguard/release.sts.yaml) instead of using the broad default
       # GITHUB_TOKEN or a long-lived PAT.
-      - uses: octo-sts/action@b6a4c9287012d2e1d2477d4f25d6f35de668e2d3 # main
+      - uses: octo-sts/action@2ea63db88c2be45e0d1dd46ecb820021eec01439 # main
         id: octo-sts
         with:
           scope: ${{ github.repository }}
