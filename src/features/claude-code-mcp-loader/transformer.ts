@@ -4,13 +4,14 @@ import type {
   McpRemoteConfig,
   McpServerConfig,
 } from "./types"
-import { expandEnvVarsInObject } from "./env-expander"
+import { expandEnvVarsInObject, type ExpandEnvVarsOptions } from "./env-expander"
 
 export function transformMcpServer(
   name: string,
-  server: ClaudeCodeMcpServer
+  server: ClaudeCodeMcpServer,
+  options?: ExpandEnvVarsOptions
 ): McpServerConfig {
-  const expanded = expandEnvVarsInObject(server)
+  const expanded = expandEnvVarsInObject(server, options)
   const serverType = expanded.type ?? "stdio"
 
   if (serverType === "http" || serverType === "sse") {

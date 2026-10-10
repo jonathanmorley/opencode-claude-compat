@@ -1,7 +1,10 @@
 const CLAUDE_PLUGIN_ROOT_VAR = "${CLAUDE_PLUGIN_ROOT}"
+const BARE_CLAUDE_PLUGIN_ROOT_VAR = /\$CLAUDE_PLUGIN_ROOT(?![A-Za-z0-9_])/g
 
 export function resolvePluginPath(path: string, pluginRoot: string): string {
-  return path.replaceAll(CLAUDE_PLUGIN_ROOT_VAR, pluginRoot)
+  return path
+    .replaceAll(CLAUDE_PLUGIN_ROOT_VAR, pluginRoot)
+    .replace(BARE_CLAUDE_PLUGIN_ROOT_VAR, pluginRoot)
 }
 
 export function resolvePluginPaths<T>(obj: T, pluginRoot: string): T {

@@ -25,7 +25,7 @@ export interface HookMatcher {
 export interface HookCommand {
   type: "command"
   command: string
-  /** Env vars allowed to pass through to the spawned process (plugin-sourced hooks are intersected with mcp_env_allowlist) */
+  /** Env vars allowed to pass through to the spawned process. Omitted plugin-sourced commands receive the full process env. */
   allowedEnvVars?: string[]
   /** Plugin install path. When set, CLAUDE_PLUGIN_ROOT is injected into the spawn env and substituted in the command string. */
   pluginRoot?: string

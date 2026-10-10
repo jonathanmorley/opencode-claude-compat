@@ -40,7 +40,7 @@ them; hosts without those domains skip MCP servers and hooks.
 - **Slash commands** (`commands/*.md`) → OpenCode commands
 - **Agents** (`agents/*.md`) → OpenCode subagents
 - **Hooks** (PreToolUse/PostToolUse/etc.) → `tool.execute.before`/`tool.execute.after`
-- **MCP servers** (`mcpServers` from plugin manifests + `.mcp.json`) → `mcp` config (env expansion, allowed-env filter)
+- **MCP servers** (`mcpServers` from plugin manifests + `.mcp.json`) → `mcp` config (trusted env expansion for plugin configs, allowed-env filter for non-plugin configs)
 
 Discovery reads `~/.claude/plugins/installed_plugins.json` plus the plugin cache under `~/.claude/plugins/cache` (override with `CLAUDE_PLUGINS_HOME`).
 
