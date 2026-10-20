@@ -20,7 +20,7 @@ describe("loadPluginMcpServers", () => {
     projectDir = join(testDir, "project")
     projectSubdirectory = join(projectDir, "packages", "app")
     pluginDir = join(testDir, "plugin")
-    mcpConfigPath = join(pluginDir, "mcp.json")
+    mcpConfigPath = join(pluginDir, ".mcp.json")
     mkdirSync(projectDir, { recursive: true })
     mkdirSync(projectSubdirectory, { recursive: true })
     mkdirSync(pluginDir, { recursive: true })
@@ -88,6 +88,54 @@ describe("loadPluginMcpServers", () => {
         expect(servers).not.toHaveProperty("demo-plugin:parentLocal")
       } finally {
         process.chdir(originalCwd)
+      }
+    })
+  })
+
+  describe("#given a plugin MCP config referencing an operator-provided env var", () => {
+    it("#when loading plugin MCP servers #then it expands the env var in trusted mode", async () => {
+      // given
+      const originalToken = process.env.ACP_MCP_OIDC_TOKEN
+      process.env.ACP_MCP_OIDC_TOKEN = "tok"
+      writeFileSync(
+        mcpConfigPath,
+        JSON.stringify({
+          mcpServers: {
+            acp: {
+              type: "http",
+              url: "https://x/${ACP_MCP_OIDC_TOKEN}",
+            },
+          },
+        })
+      )
+
+      const plugin: LoadedPlugin = {
+        name: "demo-plugin",
+        version: "1.0.0",
+        scope: "project",
+        installPath: pluginDir,
+        pluginKey: "demo-plugin@test",
+        mcpPath: mcpConfigPath,
+      }
+
+      try {
+        const { loadPluginMcpServers } = await import(`./mcp-server-loader?t=${Date.now()}`)
+
+        // when
+        const servers = await loadPluginMcpServers([plugin])
+
+        // then
+        expect(servers["demo-plugin:acp"]).toEqual({
+          type: "remote",
+          url: "https://x/tok",
+          enabled: true,
+        })
+      } finally {
+        if (originalToken === undefined) {
+          delete process.env.ACP_MCP_OIDC_TOKEN
+        } else {
+          process.env.ACP_MCP_OIDC_TOKEN = originalToken
+        }
       }
     })
   })
